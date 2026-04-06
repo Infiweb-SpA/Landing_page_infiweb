@@ -17,4 +17,4 @@ def contact():
     return jsonify({"success": True, "message": "Mensaje enviado correctamente"}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, port=8080, host="0.0.0.0")
