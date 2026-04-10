@@ -1,72 +1,49 @@
 import os
-import threading
+import resend
 from flask import Flask, render_template, request, jsonify
-from flask_mail import Mail, Message
 
 app = Flask(__name__)
 
-# CONFIG GMAIL
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_TIMEOUT'] = 10
-
-
-mail = Mail(app)
+# Configura tu API Key de Resend (Mejor si la pones en las variables de Railway)
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# 🔥 FUNCIÓN QUE ENVÍA EL CORREO EN SEGUNDO PLANO
-def send_email_async(app, msg):
-    with app.app_context():
-        try:
-            print("📧 Enviando correo en background...")
-            mail.send(msg)
-            print("✅ Correo enviado")
-        except Exception as e:
-            print(f"❌ Error enviando correo: {e}")
-
 @app.route('/contact', methods=['POST'])
 def contact():
     data = request.get_json()
-
     if not data:
-        return jsonify({"success": False}), 400
+        return jsonify({"success": False, "message": "No se recibieron datos"}), 400
 
     name = data.get('name')
     email = data.get('email')
     message_content = data.get('message')
 
-    if not name or not email or not message_content:
-        return jsonify({"success": False}), 400
+    try:
+        # Enviamos el correo usando la API de Resend
+        params = {
+            "from": "onboarding@resend.dev",
+            "to": "infiwebspa@gmail.com", # El correo donde quieres recibir avisos
+            "subject": f"Nuevo mensaje web de {name}",
+            "html": f"""
+                <h3>Nuevo mensaje de contacto</h3>
+                <p><strong>Nombre:</strong> {name}</p>
+                <p><strong>Email del cliente:</strong> {email}</p>
+                <p><strong>Mensaje:</strong></p>
+                <p>{message_content}</p>
+            """
+        }
 
-    msg = Message(
-        subject=f"Nuevo mensaje de {name}",
-        recipients=['infiwebspa.contactanos@gmail.com'],
-        body=f"""
-Nombre: {name}
-Correo: {email}
+        email_response = resend.Emails.send(params)
+        print(f"✅ Correo enviado vía API: {email_response}")
+        
+        return jsonify({"success": True, "message": "¡Mensaje enviado con éxito!"}), 200
 
-Mensaje:
-{message_content}
-"""
-    )
-
-    # 🚀 LANZAMOS EL ENVÍO EN BACKGROUND
-    threading.Thread(target=send_email_async, args=(app, msg)).start()
-
-    # 🔥 RESPONDEMOS INMEDIATAMENTE (NO SE CUELGA)
-    return jsonify({
-        "success": True,
-        "message": "Mensaje enviado (procesando...)"
-    }), 200
-
+    except Exception as e:
+        print(f"❌ Error con Resend: {e}")
+        return jsonify({"success": False, "message": "Error interno al enviar"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
