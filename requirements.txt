@@ -1,2 +1,3 @@
 Flask
+resend
 flask_mail
