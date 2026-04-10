@@ -113,26 +113,44 @@ const formMessage = document.getElementById('formMessage');
 
 contactForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const formData = {
         name: document.getElementById('name').value,
         email: document.getElementById('email').value,
         message: document.getElementById('message').value
     };
-    formMessage.innerHTML = '<span style="color: #00cfff;">Enviando...</span>';
+
+    formMessage.innerHTML = '<span style="color:#00cfff;">Enviando...</span>';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+
     try {
         const response = await fetch('/contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            signal: controller.signal
         });
+
+        clearTimeout(timeout);
+
         const result = await response.json();
+
         if (result.success) {
-            formMessage.innerHTML = '<span style="color: #10b981;">✅ Mensaje enviado correctamente. Te contactaremos pronto.</span>';
+            formMessage.innerHTML = '<span style="color:#10b981;">✅ Mensaje enviado correctamente</span>';
             contactForm.reset();
         } else {
-            formMessage.innerHTML = '<span style="color: #ef4444;">❌ Error al enviar. Intenta de nuevo.</span>';
+            formMessage.innerHTML = '<span style="color:#ef4444;">❌ Error al enviar</span>';
         }
+
     } catch (error) {
-        formMessage.innerHTML = '<span style="color: #ef4444;">❌ Error de conexión.</span>';
+        if (error.name === 'AbortError') {
+            formMessage.innerHTML = '<span style="color:#f59e0b;">⏱️ El servidor tardó demasiado</span>';
+        } else {
+            formMessage.innerHTML = '<span style="color:#ef4444;">❌ Error de conexión</span>';
+        }
+
+        console.error("Error:", error);
     }
 });
