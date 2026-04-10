@@ -6,14 +6,15 @@ from flask_mail import Mail, Message
 app = Flask(__name__)
 
 # CONFIG GMAIL
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_SERVER'] = '74.125.142.108'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_TIMEOUT'] = 10
+#app.config['MAIL_TIMEOUT'] = 10
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
 
 mail = Mail(app)
 
@@ -47,7 +48,7 @@ def contact():
 
     msg = Message(
         subject=f"Nuevo mensaje de {name}",
-        recipients=['infiwebspa.contactanos@gmail.com'],
+        recipients=['infiwebspa@gmail.com'],
         body=f"""
 Nombre: {name}
 Correo: {email}
